@@ -1,0 +1,173 @@
+//moisture sensor pins (0 to 872)
+int msout=8; //Moisture Sensor
+int msin=A0;
+int moisture;
+
+//pot pin to set minimum moisture level needed (0 to 1023)
+int wetpin=A1;
+int wetmin; //minimum moisture level
+int wetmax; //maxmum moisture level
+
+//humidity indicator bulbS
+int hred=3;
+int hgrn=4;
+int hblu=5;
+
+//servo for tap (0,90,180)
+#include <Servo.h>
+int servopin=2;
+Servo tap;
+
+//LDR to check light intensity
+int ldr=A2;
+int ldrval;
+
+//pot pin to set req light intensity
+int litpin=A3;
+int litreq;
+
+//bulb
+int bulb=A4;
+int bright=500;
+
+//temparature
+int temppin=A5;
+
+
+void setup()
+{
+  pinMode(msout, OUTPUT);
+  pinMode(msin, INPUT);
+  pinMode(wetpin, INPUT);
+  
+  pinMode(hred, OUTPUT);
+  pinMode(hgrn, OUTPUT);
+  pinMode(hblu, OUTPUT);
+  
+  tap.attach(servopin);
+  tap.write(0);
+  
+  pinMode(ldr, INPUT);
+  pinMode(litpin, INPUT);
+  pinMode(bulb, OUTPUT);
+  
+  pinMode(temppin, INPUT);
+  
+  Serial.begin(9600); //Start serial monitor
+  
+  digitalWrite (hred, HIGH);
+  digitalWrite (hgrn, HIGH);
+  digitalWrite (hblu, HIGH);
+  analogWrite (bulb, 1023);
+  delay (1000);
+  digitalWrite (hred, LOW);
+  digitalWrite (hgrn, LOW);
+  digitalWrite (hblu, LOW);
+  analogWrite (bulb, 0);
+  Serial.println ("STARTED THE PROCESS........!!!!!!");
+  delay (1000);
+  analogWrite (bulb, bright);
+}
+
+
+void loop()
+{
+//MEASUREMENTS:-
+  
+  wetmin=analogRead(wetpin);
+  wetmax= wetmin + 200;
+  Serial.print("Min Moisture Needed= ");
+  Serial.println(wetmin);
+  Serial.print("Max Moisture Needed= ");
+  Serial.println(wetmax);
+  
+  digitalWrite(msout, HIGH);
+  delay(10);
+  moisture = analogRead(msin);
+  digitalWrite(msout, LOW);
+  Serial.print("Current Moisture level= ");
+  Serial.println(moisture);
+  Serial.println(" ");
+  
+  
+  litreq= analogRead(litpin);
+  Serial.print("Required Light Level= ");
+  Serial.println(litreq);
+  
+  ldrval= analogRead(ldr);
+  Serial.print("Current Light Level= ");
+  Serial.println(ldrval);
+  
+  int tempread = analogRead(temppin);
+  float tempvol = tempread * (5.0 / 1024.0);
+  float temperatureC = (tempvol - 0.5) * 100;
+  Serial.print("Current Temperature= ");
+  Serial.print(temperatureC);
+  Serial.print("\xC2\xB0");
+  Serial.println("C  |  ");
+ 
+  
+//AUTOMATION PART:-
+  
+  //low moisture
+  if (moisture<=wetmin)
+  {digitalWrite(hred, HIGH);
+   tap.write(180); //tap fully open
+   Serial.println("TAP OPEN");
+  }
+  else 
+  { digitalWrite(hred, LOW);
+  }
+  
+  //optimum moisture
+  if (moisture<=wetmax && moisture>=wetmin)
+  {digitalWrite(hgrn, HIGH);
+   tap.write(90); //tap half open
+   Serial.println("STABLE DRIP IRRIGATION");
+  }
+  else 
+  { digitalWrite(hgrn, LOW);
+  }
+  
+  //high moisture
+  if (moisture>=wetmax)
+  {digitalWrite(hblu, HIGH);
+   tap.write(0); //tap fully  closed
+   Serial.println("TAP CLOSED");
+  }
+  else 
+  { digitalWrite(hblu, LOW);
+  }
+  
+  delay(100);
+  
+  
+  
+  //low light
+  if (ldrval<=litreq)
+  {
+    bright=bright+50;
+    analogWrite(bulb, bright);
+    Serial.println("BRIGHTNESS INCREASES");
+  }
+  
+  //optimum light
+  if (ldrval>= litreq && ldrval<=(litreq+100))
+  {
+    analogWrite(bulb, bright);
+    Serial.println("STABLE BRIGHTNESS");
+  }
+  
+  //high light
+  if (ldrval>=(litreq+100))
+  {
+    bright=bright-50;
+    analogWrite(bulb, bright);
+    Serial.println("BRIGHTNESS REDUCES");
+  }
+  
+  Serial.println("CYCLE COMPLETED");
+  delay(5000);
+  Serial.println(" ");
+
+}
